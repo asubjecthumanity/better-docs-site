@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Better Docs</title>
+<meta name="description" content="Better Docs is a Chrome extension for Google Docs: send text from any website to a spot in your doc, and have spelling and grammar fixes accepted while you write.">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #fcfcfd;
+    --surface: #ffffff;
+    --text: #0d0b14;
+    --text-2: #514d5e;
+    --border: #e2e0e9;
+    --accent: #6d4aff;
+    --accent-soft: rgb(109 74 255 / 0.1);
+    --shadow: 0 1px 2px rgb(13 11 20 / 0.05), 0 8px 24px rgb(13 11 20 / 0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #121118;
+      --surface: #1a1922;
+      --text: #ffffff;
+      --text-2: #c5c2d1;
+      --border: #2e2c38;
+      --accent: #8f75ff;
+      --accent-soft: rgb(143 117 255 / 0.14);
+      --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #121118;
+    --surface: #1a1922;
+    --text: #ffffff;
+    --text-2: #c5c2d1;
+    --border: #2e2c38;
+    --accent: #8f75ff;
+    --accent-soft: rgb(143 117 255 / 0.14);
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.3);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 18px; }
+  nav .links { display: flex; gap: 20px; font-size: 15px; }
+  nav .links a { color: var(--text-2); text-decoration: none; }
+  nav .links a:hover { color: var(--accent); }
+
+  /* The extension icon: a white "B" helper creature on brand violet. */
+  .mark { display: block; width: 32px; height: 32px; flex: none; }
+
+  .hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center; padding: 48px 0 64px; }
+  h1 { font-size: 56px; line-height: 1.05; letter-spacing: -0.025em; margin: 0; }
+  .tagline { font-size: 24px; font-weight: 600; line-height: 1.3; margin: 14px 0 0; }
+  .tagline span { color: var(--accent); }
+  .intro { color: var(--text-2); margin: 18px 0 0; font-size: 17px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .button {
+    display: inline-block; padding: 10px 18px; border-radius: 10px; font-weight: 600; text-decoration: none;
+    border: 1px solid var(--border); color: var(--text); background: var(--surface);
+  }
+  .button.primary { background: #6d4aff; border-color: #6d4aff; color: #fff; }
+
+  /* Mini Google Doc: text just sent lands before helper A. Same paper in both themes. */
+  .doc {
+    min-width: 0;
+    padding: 26px 26px 30px;
+    border-radius: 14px;
+    background: #fbfaff;
+    color: #3c4043;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    font: 15px/1.75 Arial, Helvetica, sans-serif;
+  }
+  .doc .title { font-weight: 700; font-size: 19px; color: #202124; margin: 0 0 10px; }
+  .doc p { margin: 0 0 12px; }
+  .landed { background: rgb(109 74 255 / 0.16); border-radius: 3px; margin-right: 2px; }
+  /* A helper in the doc: the creature picture Better Docs plants (14pt next to 11pt text, like in Docs). */
+  .cr { height: 20px; vertical-align: -2px; margin-left: 2px; }
+  /* The Simple look's text marker. */
+  .chip { display: inline-block; padding: 0 5px; border-radius: 4px; color: #fff; font-weight: 700; line-height: 20px; white-space: nowrap; }
+  .chip.a { background: #6d4aff; }
+  .chip.b { background: #2b6be6; }
+  .fixed { text-decoration: underline 2px #24823f; text-underline-offset: 4px; }
+
+  section { padding: 56px 0; border-top: 1px solid var(--border); }
+  h2 { font-size: 30px; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 12px; }
+  h3 { font-size: 19px; margin: 0 0 8px; }
+  section > .wrap > p, li { color: var(--text-2); }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; }
+  .card { padding: 24px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
+  .card p, .card li { color: var(--text-2); }
+  .card ul { padding-left: 20px; margin: 12px 0 0; }
+  .card li { margin: 6px 0; }
+  .steps { list-style: none; counter-reset: step; padding: 0; margin: 24px 0 0; display: grid; gap: 16px; }
+  .steps li { counter-increment: step; position: relative; padding-left: 48px; }
+  .steps li::before {
+    content: counter(step); position: absolute; left: 0; top: 0;
+    width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--accent-soft); color: var(--accent); font-weight: 700;
+  }
+  .steps strong, .card strong { color: var(--text); }
+  .note {
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 20px 0;
+  }
+  .note p { margin: 0; color: var(--text); }
+
+  /* Meet the helpers: a parade of creatures, then the Simple look for comparison. */
+  .parade { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 18px; margin: 28px 0 8px; padding: 24px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
+  .parade img { height: 64px; width: auto; }
+  .looks { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+  .looks .card { display: flex; flex-direction: column; gap: 10px; }
+  .looks .sample { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+  .looks .sample img { height: 36px; }
+  .looks .tag { display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 8px; color: #fff; font-weight: 700; font-size: 15px; }
+  code { font-size: 0.9em; overflow-wrap: anywhere; }
+  footer { padding: 28px 0 48px; border-top: 1px solid var(--border); font-size: 14px; color: var(--text-2); }
+  footer p { margin: 4px 0; }
+
+  @media (max-width: 760px) {
+    nav .links { display: none; }
+    .hero { grid-template-columns: 1fr; gap: 32px; padding: 24px 0 48px; }
+    h1 { font-size: 44px; }
+    .tagline { font-size: 21px; }
+    .cards, .looks { grid-template-columns: 1fr; }
+    .parade { gap: 8px 12px; padding: 16px; }
+    .parade img { height: 44px; }
+    section { padding: 44px 0; }
+    h2 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="./"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="22" fill="#6d4aff"/><g transform="translate(15.455 10) scale(0.727)"><path d="M20 16L20 94M20 16L48 16M48 16A20 18.5 0 0 1 48 53M20 53L52 53M52 53A23 20.5 0 0 1 52 94M52 94L20 94" fill="none" stroke="#fff" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"/><circle cx="31" cy="16.5" r="6.4" fill="#1c1342"/><circle cx="33" cy="14.4" r="1.9" fill="#fff"/><circle cx="45" cy="16.5" r="6.4" fill="#1c1342"/><circle cx="47" cy="14.4" r="1.9" fill="#fff"/></g></svg>Better Docs</a>
+      <div class="links">
+        <a href="#features">Features</a>
+        <a href="#helpers">Helpers</a>
+        <a href="#how">How it works</a>
+        <a href="#google-data">Your data</a>
+        <a href="privacy.html">Privacy</a>
+      </div>
+    </nav>
+
+    <div class="hero">
+      <div>
+        <h1>Better Docs</h1>
+        <p class="tagline">Copy from anywhere. <span>Land it in your doc.</span></p>
+        <p class="intro">Better Docs is a Chrome extension for Google Docs. Plant helpers in your doc, then send text from
+        any website straight to them. Autogramulate accepts spelling and grammar fixes for you while you pause typing.</p>
+        <div class="actions">
+          <a class="button primary" href="#install">Get Better Docs</a>
+          <a class="button" href="privacy.html">Privacy policy</a>
+        </div>
+      </div>
+      <div class="doc" aria-hidden="true">
+        <p class="title">Ocean research notes</p>
+        <p>Octopuses are found in every ocean. Most species live alone and are active at night.</p>
+        <p>Facts: <span class="landed">They have three hearts and blue blood.</span><img class="cr" src="helpers/violet/A.png" alt=""></p>
+        <p>Quotes to use later: <img class="cr" src="helpers/blue/B.png" alt=""></p>
+        <p>An octopus can taste with <span class="fixed">the</span> suckers on its arms.</p>
+      </div>
+    </div>
+  </div>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>Two ways Better Docs helps you write</h2>
+      <div class="cards">
+        <div class="card">
+          <h3>Helpers</h3>
+          <p>Put your cursor anywhere in a Google Doc and click <strong>Plant helper here</strong>. A little helper creature
+          shaped like the letter A appears. On any website, highlight text and send it to that helper: it lands right
+          before the helper, so the next thing you send lands after it, in order.</p>
+          <ul>
+            <li>As many helpers as you like, in as many docs as you like</li>
+            <li>Send from Chrome's side panel, the right-click menu, or Alt+Shift+V</li>
+            <li>Optional <strong>Send on copy</strong>: everything you copy goes to your active helper, even inside web editors</li>
+            <li>Keep bold, italics, underline and links, or send plain text</li>
+            <li>Add a link back to the source page, and undo the last send</li>
+            <li>Fun creatures, or a <strong>Simple</strong> look with plain colored tags</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Autogramulate</h3>
+          <p>Turn on <strong>Fix grammar as I type</strong> in the Better Docs panel inside Google Docs. When you pause typing, it accepts spelling and grammar
+          fixes for you.</p>
+          <ul>
+            <li>Already use Grammarly? When it's running in your doc, Autogramulate can click Grammarly's own suggestions for you, one per pause.</li>
+            <li>Otherwise it uses Chrome's on-device proofreader when available, or a simple built-in set of rules for English.</li>
+            <li>It only touches text you type after turning it on, and only sentences you've finished, never the one you're typing.</li>
+            <li>It pauses in Suggesting mode and on docs you can't edit.</li>
+            <li>Choose which kinds of fixes to accept. Built-in fixes can be undone from the log; Grammarly's are undone in the doc.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="helpers">
+    <div class="wrap">
+      <h2>Meet the helpers</h2>
+      <p>Every helper is a little creature shaped like its letter: A to Z, then 1 to 9. In the Better Docs panel they bob,
+      blink and watch your pointer, and they do a happy squish when your text arrives. In your doc, each one is a small
+      picture sitting exactly where your next text will land.</p>
+      <div class="parade">
+        <img src="helpers/violet/A.png" alt="Helper A" width="58" height="64">
+        <img src="helpers/blue/B.png" alt="Helper B" width="51" height="64">
+        <img src="helpers/teal/C.png" alt="Helper C" width="54" height="64">
+        <img src="helpers/green/D.png" alt="Helper D" width="53" height="64">
+        <img src="helpers/amber/E.png" alt="Helper E" width="52" height="64">
+        <img src="helpers/orange/F.png" alt="Helper F" width="52" height="64">
+        <img src="helpers/red/G.png" alt="Helper G" width="60" height="64">
+        <img src="helpers/pink/H.png" alt="Helper H" width="54" height="64">
+        <img src="helpers/violet/K.png" alt="Helper K" width="53" height="64">
+        <img src="helpers/blue/S.png" alt="Helper S" width="51" height="64">
+        <img src="helpers/teal/7.png" alt="Helper 7" width="54" height="64">
+        <img src="helpers/green/2.png" alt="Helper 2" width="53" height="64">
+      </div>
+      <div class="looks">
+        <div class="card">
+          <h3>Fun (the default)</h3>
+          <div class="sample"><img src="helpers/violet/A.png" alt="" width="32" height="36"><img src="helpers/blue/B.png" alt="" width="29" height="36"><img src="helpers/teal/C.png" alt="" width="31" height="36"></div>
+          <p>Creatures in the panel and creature pictures in your doc.</p>
+        </div>
+        <div class="card">
+          <h3>Simple</h3>
+          <div class="sample"><span class="tag" style="background: #6d4aff">A</span><span class="tag" style="background: #2b6be6">B</span><span class="tag" style="background: #0c8077">C</span></div>
+          <p>Sleek colored tags in the panel and plain text markers like <span class="chip a">⟦A⟧</span> in your doc. Switch any
+          time under <strong>Helper look</strong>; your helpers already in docs change with it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li><strong>Connect your Google account.</strong> Open a Google Doc and click the Better Docs icon. A panel opens at the right
+        edge of the page. Click <strong>Connect Google account</strong> and allow Better Docs to edit your Google
+        Docs.</li>
+        <li><strong>Plant a helper.</strong> Put your cursor where text should go and click <strong>Plant helper
+        here</strong>. Better Docs places a helper there through the Google Docs API: a creature picture, or a text
+        marker such as ⟦A⟧ with the Simple look.</li>
+        <li><strong>Send text.</strong> Highlight text on any other site and send it from the side panel, the right-click
+        menu or the keyboard shortcut. Better Docs inserts it right before the marker in your doc.</li>
+        <li><strong>Keep writing.</strong> Turn on Autogramulate in the panel if you'd like fixes accepted for you while you
+        type.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="google-data">
+    <div class="wrap">
+      <h2>Your Google account and your data</h2>
+      <p>Better Docs asks Google for one permission: <strong>"See, edit, create, and delete all your Google Docs
+      documents"</strong> (<code>https://www.googleapis.com/auth/documents</code>). It needs it to place helper markers,
+      insert the text you send, and apply spelling and grammar fixes, because Google Docs can only be edited reliably
+      through Google's Docs API.</p>
+      <ul>
+        <li>It only opens a document when you use it there: when you plant, send to or manage a helper in it, or when
+        Autogramulate is on and you're typing in it. It never lists or searches your documents, and Autogramulate never
+        changes text that was in the doc before you turned it on.</li>
+        <li>Your helpers, settings and history are stored in your browser. There is no Better Docs server and no
+        account.</li>
+        <li>It talks only to Google. No analytics, no ads, and nothing is sent to the developer or anyone else.</li>
+        <li>Helper creatures are pictures hosted on this website. When you plant one, Google's servers download the
+        picture from here and keep a copy in your doc; the picture's address only names its color and letter. Your
+        browser doesn't contact this site for it, and the extension sends it nothing about you.</li>
+        <li>Sign out at any time to revoke access, or delete everything Better Docs has stored with one click.</li>
+      </ul>
+      <div class="note">
+        <p>Better Docs' use and transfer of information received from Google APIs to any other app will adhere to the
+        <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data
+        Policy</a>, including the Limited Use requirements.</p>
+      </div>
+      <p>The <a href="privacy.html">privacy policy</a> explains exactly what is accessed, stored and deleted.</p>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <h2>Get Better Docs</h2>
+      <p>Better Docs is in a limited release on the Chrome Web Store. To try it, email
+      <a href="mailto:a.subject.humanity@gmail.com">a.subject.humanity@gmail.com</a> for the install link. It needs Chrome
+      119 or later.</p>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="wrap">
+      <h2>Contact</h2>
+      <p>Questions, bug reports or privacy requests: <a href="mailto:a.subject.humanity@gmail.com">a.subject.humanity@gmail.com</a>.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <p><a href="privacy.html">Privacy policy</a></p>
+      <p>Better Docs is an independent project and is not affiliated with, endorsed by, or connected to Google or Grammarly.
+      Google Docs and Grammarly are trademarks of their respective owners.</p>
+    </div>
+  </footer>
+</body>
+</html>
